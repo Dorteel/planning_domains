@@ -1,0 +1,22 @@
+(define (problem breakfast_table)
+(:domain breakfast_table)
+(:objects
+green_pear - food
+yellow_banana - food
+red_cup - cup
+white_table - location
+)
+(:init
+(at green_pear white_table)
+(at yellow_banana white_table)
+(at red_cup white_table)
+(on yellow_banana red_cup)
+)
+(:goal
+(and
+(at green_pear white_table)
+(at yellow_banana red_cup)
+(at red_cup white_table)
+)
+)
+)

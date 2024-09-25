@@ -1,0 +1,79 @@
+(define (problem breakfast_arrangement)
+(:domain breakfast_arrangement)
+(:objects
+plate1 plate2 - plate
+bowl1 bowl2 - bowl
+mug1 mug2 - mug
+fork1 fork2 fork3 - fork
+knife1 knife2 - knife
+spoon1 spoon2 - spoon
+scissors1 scissors2 - scissors
+screwdriver1 screwdriver2 - screwdriver
+tape - tape
+ball - ball
+cup - cup
+lime - food
+pear - food
+cube1 cube2 cube3 cube4 - container
+location1 location2 location3 location4 location5 location6 location7 location8 location9 location10 location11 location12 location13 location14 location15 location16 location17 location18 location19 location20 - location
+out_location - location
+)
+(:init
+(at plate1 location1)
+(at plate2 location2)
+(at bowl1 location3)
+(at bowl2 location4)
+(at mug1 location5)
+(at mug2 location6)
+(at fork1 location7)
+(at fork2 location8)
+(at fork3 location9)
+(at knife1 location10)
+(at knife2 location11)
+(at spoon1 location12)
+(at spoon2 location13)
+(at scissors1 location14)
+(at scissors2 location15)
+(at screwdriver1 location16)
+(at screwdriver2 location17)
+(at tape location18)
+(at ball location19)
+(at cup location20)
+(at lime location1)
+(at pear location1)
+(at cube1 location1)
+(at cube2 location2)
+(at cube3 location3)
+(at cube4 location4)
+)
+(:goal
+(and
+(at plate1 location1)
+(at plate2 location2)
+(at bowl1 location3)
+(at bowl2 location4)
+(at mug1 location5)
+(at mug2 location6)
+(at fork1 location7)
+(at fork2 location8)
+(at fork3 location9)
+(at knife1 location10)
+(at knife2 location11)
+(at spoon1 location12)
+(at spoon2 location13)
+(at scissors1 out_location)
+(at scissors2 out_location)
+(at screwdriver1 out_location)
+(at screwdriver2 out_location)
+(at tape out_location)
+(at ball out_location)
+(at cup out_location)
+(on lime plate1)
+(on pear plate2)
+(at cube1 out_location)
+(at cube2 out_location)
+(at cube3 out_location)
+(at cube4 out_location)
+)
+)
+)

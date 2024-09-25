@@ -1,0 +1,44 @@
+(define (problem table_arrangement)
+(:domain table_arrangement)
+(:objects
+plate1 - plate
+pear - food
+fork1 - cutlery
+fork2 - cutlery
+spoon - cutlery
+knife1 - cutlery
+knife2 - cutlery
+basket - basket
+screwdriver - tool
+scissors - tool
+remote - tool
+wp1s wp2s wp3s wp4s wp5s wp6s wp7s wp8s wp9s wp10s - location
+)
+(:init
+(at plate1 wp1s)
+(at pear wp2s)
+(at fork1 wp3s)
+(at fork2 wp4s)
+(at spoon wp5s)
+(at knife1 wp6s)
+(at knife2 wp7s)
+(at basket wp8s)
+(at screwdriver wp9s)
+(at scissors wp10s)
+(at remote wp1s)
+)
+(:goal
+(and
+(on pear plate1)
+(at fork1 wp2s)
+(at fork2 wp3s)
+(at spoon wp4s)
+(at knife1 wp5s)
+(at knife2 wp6s)
+(at basket wp7s)
+(at screwdriver wp8s)
+(at scissors wp9s)
+(at remote wp10s)
+)
+)
+)

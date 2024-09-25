@@ -1,0 +1,33 @@
+(define (problem Object-Arrangement) 
+(:domain Object-Arrangement) 
+(:objects
+spoon fork screw_driver pear remote knife basket plate scissors - object
+wp1s wp2s wp3s wp4s wp5s wp6s wp1f wp2f wp3f wp4f wp5f wp6f out_location - location
+) 
+(:init
+    (at basket wp1s)
+    (at mug wp2s)
+    (at knife wp3s)
+    (at banana wp4s)
+    (at plate wp5s)
+    (at cup wp6s)
+    (at plate2 wp1f)
+    (at bowl wp2f)
+    (at spoon wp3f)
+    (at fork wp4f)
+    (at pear out_location)
+) 
+(:goal (and 
+    (at basket wp1f)
+    (at mug wp2f)
+    (at knife wp3f)
+    (at banana wp4f)
+    (at plate wp5f)
+    (at cup wp6f)
+    (at plate2 out_location)
+    (at bowl out_location)
+    (at spoon out_location)
+    (at fork out_location)
+    (at pear out_location)
+)) 
+)

@@ -1,0 +1,40 @@
+(define (problem breakfast_arrangement)
+(:domain breakfast_arrangement)
+(:objects
+fork - cutlery
+knife - cutlery
+spoon - cutlery
+plate - plate
+basket - basket
+pear - food
+remote_control - object
+screwdriver - object
+scissors - object
+table - location
+out_location - location
+)
+(:init
+(at fork table)
+(at knife table)
+(at spoon table)
+(at plate table)
+(at basket table)
+(at pear table)
+(at remote_control table)
+(at screwdriver table)
+(at scissors table)
+)
+(:goal
+(and
+(at fork out_location)
+(at knife out_location)
+(at spoon out_location)
+(at remote_control out_location)
+(at screwdriver out_location)
+(at scissors out_location)
+(on pear plate)
+(at basket table)
+(at plate table)
+)
+)
+)

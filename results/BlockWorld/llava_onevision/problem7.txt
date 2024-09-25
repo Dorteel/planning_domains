@@ -1,0 +1,42 @@
+Initial State in PDDL format:
+
+(define (problem blocksworld1)
+(:domain blocksworld)
+(:objects
+green_block - block
+pink_block - block
+yellow_block - block
+red_block - block
+purple_block - block
+orange_block - block
+robot - robot
+table - table
+)
+(:init
+(ontable green_block table)
+(ontable pink_block table)
+(ontable yellow_block table)
+(ontable red_block table)
+(ontable purple_block table)
+(ontable orange_block table)
+(handempty robot)
+(clear green_block)
+(clear pink_block)
+(clear yellow_block)
+(clear red_block)
+(clear purple_block)
+(clear orange_block)
+)
+)
+
+Goal State in PDDL format:
+
+(define (goal)
+(and
+(on yellow_block pink_block)
+(on pink_block green_block)
+(on green_block red_block)
+(on red_block purple_block)
+(on purple_block orange_block)
+)
+)

@@ -1,0 +1,14 @@
+
+; Version LPG-td-1.4
+; Seed 72290880
+; Command line: /home/pofe/dev_ws/src/athena/planning/athena_planner/Planners/LPG-td-1.4/lpg-td -o /home/pofe/Papers/PlanGpt/LangRobPlan/VLM_LMM/Prompt_vlm/hanoi/domain.pddl -f /home/pofe/Papers/PlanGpt/LangRobPlan/VLM_LMM/scripts/Result/hanoi/problem9.pddl -n 1 -onlybestfirst 
+; Problem /home/pofe/Papers/PlanGpt/LangRobPlan/VLM_LMM/scripts/Result/hanoi
+; Actions having STRIPS duration
+; Time 0.00
+; Search time 0.00
+; Parsing time 0.00
+; Mutex time 0.00
+; NrActions 0
+
+
+no solution

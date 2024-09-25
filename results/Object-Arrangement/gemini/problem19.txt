@@ -1,0 +1,94 @@
+(define (problem table_arrangement)
+(:domain table_arrangement)
+(:objects
+plate - plate
+bowl - bowl
+cup - cup
+knife1 - cutlery
+knife2 - cutlery
+knife3 - cutlery
+knife4 - cutlery
+knife5 - cutlery
+fork1 - cutlery
+fork2 - cutlery
+fork3 - cutlery
+fork4 - cutlery
+fork5 - cutlery
+spoon1 - cutlery
+spoon2 - cutlery
+spoon3 - cutlery
+spoon4 - cutlery
+screwdriver1 - tool
+screwdriver2 - tool
+marker - tool
+scissors1 - tool
+scissors2 - tool
+tape - tool
+ball - object
+cube1 - object
+cube2 - object
+cube3 - object
+cube4 - object
+wp1s wp2s wp3s wp4s wp5s wp6s wp7s wp8s wp9s wp10s wp11s wp12s wp13s wp14s wp15s wp16s wp17s wp18s wp19s wp20s wp21s wp22s wp23s wp24s wp25s wp26s - location
+wp1f wp2f wp3f wp4f wp5f wp6f wp7f wp8f - location
+out_location - location
+)
+(:init
+(at plate wp1s)
+(at bowl wp2s)
+(at cup wp3s)
+(at knife1 wp4s)
+(at knife2 wp5s)
+(at knife3 wp6s)
+(at knife4 wp7s)
+(at knife5 wp8s)
+(at fork1 wp9s)
+(at fork2 wp10s)
+(at fork3 wp11s)
+(at fork4 wp12s)
+(at fork5 wp13s)
+(at spoon1 wp14s)
+(at spoon2 wp15s)
+(at spoon3 wp16s)
+(at spoon4 wp17s)
+(at screwdriver1 wp18s)
+(at screwdriver2 wp19s)
+(at marker wp20s)
+(at scissors1 wp21s)
+(at scissors2 wp22s)
+(at tape wp23s)
+(at ball wp24s)
+(at cube1 wp25s)
+(at cube2 wp26s)
+(at cube3 out_location)
+(at cube4 out_location)
+)
+(:goal
+(and
+(at plate wp1f)
+(at bowl wp2f)
+(at cup wp3f)
+(at knife1 wp4f)
+(at knife2 wp5f)
+(at knife3 wp6f)
+(at knife4 wp7f)
+(at knife5 wp8f)
+(at fork1 wp9f)
+(at fork2 wp10f)
+(at fork3 wp11f)
+(at fork4 wp12f)
+(at fork5 wp13f)
+(at spoon1 wp14f)
+(at spoon2 wp15f)
+(at spoon3 wp16f)
+(at spoon4 wp17f)
+(at screwdriver1 out_location)
+(at screwdriver2 out_location)
+(at marker out_location)
+(at scissors1 out_location)
+(at scissors2 out_location)
+(at tape out_location)
+(at ball out_location)
+)
+)
+)

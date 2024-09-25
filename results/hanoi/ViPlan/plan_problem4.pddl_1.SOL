@@ -1,0 +1,27 @@
+
+; Version LPG-td-1.4
+; Seed 92264864
+; Command line: /home/pofe/dev_ws/src/athena/planning/athena_planner/Planners/LPG-td-1.4/lpg-td -o /home/pofe/Papers/PlanGpt/LangRobPlan/VLM_LMM/Prompt_vlm/hanoi/domain.pddl -f /home/pofe/Papers/PlanGpt/LangRobPlan/VLM_LMM/scripts/Result/hanoi/problem4.pddl -n 1 -onlybestfirst 
+; Problem /home/pofe/Papers/PlanGpt/LangRobPlan/VLM_LMM/scripts/Result/hanoi
+; Actions having STRIPS duration
+; Time 0.00
+; Search time 0.00
+; Parsing time 0.00
+; Mutex time 0.00
+; NrActions 15
+
+0:   (MOVE PINK_DISK BLUE_DISK PEG2) [1]
+1:   (MOVE BLUE_DISK RED_DISK PEG3) [1]
+2:   (MOVE PINK_DISK PEG2 BLUE_DISK) [1]
+3:   (MOVE RED_DISK ORANGE_DISK PEG2) [1]
+4:   (MOVE PINK_DISK BLUE_DISK ORANGE_DISK) [1]
+5:   (MOVE BLUE_DISK PEG3 RED_DISK) [1]
+6:   (MOVE PINK_DISK ORANGE_DISK BLUE_DISK) [1]
+7:   (MOVE ORANGE_DISK PEG1 PEG3) [1]
+8:   (MOVE PINK_DISK BLUE_DISK ORANGE_DISK) [1]
+9:   (MOVE BLUE_DISK RED_DISK PEG1) [1]
+10:   (MOVE PINK_DISK ORANGE_DISK BLUE_DISK) [1]
+11:   (MOVE RED_DISK PEG2 ORANGE_DISK) [1]
+12:   (MOVE PINK_DISK BLUE_DISK PEG2) [1]
+13:   (MOVE BLUE_DISK PEG1 RED_DISK) [1]
+14:   (MOVE PINK_DISK PEG2 BLUE_DISK) [1]

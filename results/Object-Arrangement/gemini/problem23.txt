@@ -1,0 +1,60 @@
+(define (problem table_arrangement)
+(:domain table_arrangement)
+(:objects
+plate1 - plate
+plate2 - plate
+cup1 - cup
+cup2 - cup
+bowl1 - bowl
+bowl2 - bowl
+banana - food
+pear - food
+basket - container
+spoon - cutlery
+screwdriver - tool
+scissors - tool
+tape - tool
+ball - object
+cube1 - object
+cube2 - object
+cube3 - object
+cube4 - object
+wp1s wp2s wp3s wp4s wp5s wp6s wp7s wp8s wp9s wp10s wp11s wp12s - location
+wp1f wp2f wp3f wp4f wp5f wp6f wp7f wp8f - location
+out_location - location
+)
+(:init
+(at plate1 wp1s)
+(at plate2 wp2s)
+(at cup1 wp3s)
+(at cup2 wp4s)
+(at bowl1 wp5s)
+(at bowl2 wp6s)
+(at banana wp7s)
+(at pear wp8s)
+(at basket wp9s)
+(at spoon wp10s)
+(at screwdriver wp11s)
+(at scissors wp12s)
+(at tape out_location)
+(at ball out_location)
+(at cube1 out_location)
+(at cube2 out_location)
+(at cube3 out_location)
+(at cube4 out_location)
+)
+(:goal
+(and
+(at plate1 wp1f)
+(at plate2 wp2f)
+(at cup1 wp3f)
+(at bowl1 wp4f)
+(at bowl2 wp5f)
+(at spoon wp6f)
+(at screwdriver out_location)
+(at scissors out_location)
+(on banana plate1)
+(on pear plate2)
+)
+)
+)

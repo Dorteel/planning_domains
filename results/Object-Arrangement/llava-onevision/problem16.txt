@@ -1,0 +1,73 @@
+(define (problem breakfast_arrangement)
+(:domain breakfast_arrangement)
+(:objects
+fork1 fork2 fork3 - cutlery
+knife1 knife2 - cutlery
+spoon1 spoon2 - cutlery
+bowl1 bowl2 - bowl
+plate1 plate2 - plate
+fruit1 fruit2 - fruit
+mug1 mug2 - mug
+cup1 cup2 - cup
+basket1 basket2 - basket
+glass1 glass2 - glass
+scissors1 scissors2 - scissors
+screwdriver1 screwdriver2 - screwdriver
+location1 location2 location3 location4 location5 location6 location7 location8 location9 location10 location11 location12 - location
+)
+(:init
+(at fork1 location1)
+(at fork2 location2)
+(at fork3 location3)
+(at knife1 location4)
+(at knife2 location5)
+(at spoon1 location6)
+(at spoon2 location7)
+(at bowl1 location8)
+(at bowl2 location9)
+(at plate1 location10)
+(at plate2 location11)
+(at fruit1 location12)
+(at fruit2 location1)
+(at mug1 location2)
+(at mug2 location3)
+(at cup1 location4)
+(at cup2 location5)
+(at basket1 location6)
+(at basket2 location7)
+(at glass1 location8)
+(at glass2 location9)
+(at scissors1 location10)
+(at scissors2 location11)
+(at screwdriver1 location12)
+(at screwdriver2 location1)
+)
+(:goal
+(and
+(at fork1 plate1)
+(at fork2 plate2)
+(at knife1 bowl1)
+(at knife2 bowl2)
+(at spoon1 plate1)
+(at spoon2 plate2)
+(at bowl1 location1)
+(at bowl2 location2)
+(at plate1 location3)
+(at plate2 location4)
+(at fruit1 plate1)
+(at fruit2 plate2)
+(at mug1 location5)
+(at mug2 location6)
+(at cup1 location7)
+(at cup2 location8)
+(at basket1 location9)
+(at basket2 location10)
+(at glass1 location11)
+(at glass2 location12)
+(at scissors1 location1)
+(at scissors2 location2)
+(at screwdriver1 location3)
+(at screwdriver2 location4)
+)
+)
+)

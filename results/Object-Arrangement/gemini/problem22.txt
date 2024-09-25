@@ -1,0 +1,60 @@
+(define (problem table_arrangement)
+(:domain table_arrangement)
+(:objects
+knife1 - cutlery
+knife2 - cutlery
+knife3 - cutlery
+knife4 - cutlery
+knife5 - cutlery
+fork1 - cutlery
+fork2 - cutlery
+fork3 - cutlery
+fork4 - cutlery
+fork5 - cutlery
+spoon1 - cutlery
+spoon2 - cutlery
+screwdriver - tool
+marker - tool
+scissors - tool
+cube - object
+wp1s wp2s wp3s wp4s wp5s wp6s wp7s wp8s wp9s wp10s wp11s wp12s wp13s wp14s - location
+wp1f wp2f wp3f wp4f wp5f wp6f wp7f wp8f - location
+out_location - location
+)
+(:init
+(at knife1 wp1s)
+(at knife2 wp2s)
+(at knife3 wp3s)
+(at knife4 wp4s)
+(at knife5 wp5s)
+(at fork1 wp6s)
+(at fork2 wp7s)
+(at fork3 wp8s)
+(at fork4 wp9s)
+(at fork5 wp10s)
+(at spoon1 wp11s)
+(at spoon2 wp12s)
+(at screwdriver wp13s)
+(at marker wp14s)
+(at scissors out_location)
+(at cube out_location)
+)
+(:goal
+(and
+(at knife1 wp1f)
+(at knife2 wp2f)
+(at knife3 wp3f)
+(at knife4 wp4f)
+(at knife5 wp5f)
+(at fork1 wp6f)
+(at fork2 wp7f)
+(at fork3 wp8f)
+(at fork4 wp9f)
+(at fork5 wp10f)
+(at spoon1 wp11f)
+(at spoon2 wp12f)
+(at screwdriver out_location)
+(at marker out_location)
+)
+)
+)

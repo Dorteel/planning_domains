@@ -1,0 +1,32 @@
+(define (problem blocksworld1)
+(:domain blocksworld)
+(:objects
+green_block - block
+yellow_block - block
+red_block - block
+pink_block - block
+robot - robot
+table - table
+)
+(:init
+(ontable green_block table)
+(ontable yellow_block table)
+(ontable red_block table)
+(ontable pink_block table)
+(handempty robot)
+(clear green_block)
+(clear yellow_block)
+(clear red_block)
+(clear pink_block)
+)
+)
+
+Goal State in PDDL format:
+
+(define (goal)
+(and
+(on pink_block red_block)
+(on red_block yellow_block)
+(on yellow_block green_block)
+)
+)

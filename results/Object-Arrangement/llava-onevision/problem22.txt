@@ -1,0 +1,55 @@
+(define (problem breakfast_table)
+(:domain breakfast_table)
+(:objects
+red_plate1 - plate
+red_plate2 - plate
+red_bowl1 - bowl
+red_bowl2 - bowl
+green_pear - food
+yellow_banana - food
+blue_cup - cup
+red_cup - cup
+black_basket - basket
+blue_spoon - cutlery
+silver_spoon - cutlery
+silver_fork - cutlery
+silver_knife - cutlery
+black_screwdriver - tool
+white_table - location
+out_location - location
+)
+(:init
+(at red_plate1 white_table)
+(at red_plate2 white_table)
+(at red_bowl1 white_table)
+(at red_bowl2 white_table)
+(at green_pear white_table)
+(at yellow_banana white_table)
+(at blue_cup white_table)
+(at red_cup white_table)
+(at black_basket white_table)
+(at blue_spoon white_table)
+(at silver_spoon white_table)
+(at silver_fork white_table)
+(at silver_knife white_table)
+(at black_screwdriver white_table)
+)
+(:goal
+(and
+(at red_plate1 white_table)
+(at red_plate2 white_table)
+(at red_bowl1 white_table)
+(at red_bowl2 white_table)
+(on green_pear red_plate1)
+(on yellow_banana red_bowl1)
+(at blue_cup white_table)
+(at red_cup white_table)
+(at black_basket white_table)
+(at blue_spoon white_table)
+(at silver_spoon white_table)
+(at silver_fork white_table)
+(at silver_knife white_table)
+(at black_screwdriver out_location)
+)
+)
+)
