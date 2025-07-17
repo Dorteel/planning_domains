@@ -110,7 +110,7 @@ class OntologyBuilder:
             'Plate': Plate,
             'Robot': Robot,
             'Task': Task,
-            'ObjectArrangement': ObjectArrangement,
+            'Object Rearrangement': ObjectArrangement,
             'Scenario': Scenario,
             'BreakfastScenario': BreakfastScenario,
             'Location': Location,
@@ -122,7 +122,7 @@ class OntologyBuilder:
             str("Rearrange the table for breakfast. Remove the objects that are not listed to be in the table.")
         ))
 
-        self.classes['ObjectArrangement'].is_a.append(self.hasGeneralDescription.value(
+        self.classes['Object Rearrangement'].is_a.append(self.hasGeneralDescription.value(
             str("The task is to rearrange objects, so that each object end up at their target locations.")
         ))
 
@@ -137,7 +137,7 @@ class OntologyBuilder:
             'Plate': ("Plate", "A container used to hold food."),
             'Robot': ("Robot", "A robotic entity."),
             'Task': ("Task", "A defined piece of work to be done."),
-            'ObjectArrangement': ("Object Arrangement", "A task to arrange objects."),
+            'Object Rearrangement': ("Object Arrangement", "A task to arrange objects."),
             'Scenario': ("Scenario", "A situation involving tasks, objects, and locations."),
             'BreakfastScenario': ("Breakfast Scenario", "Scenario representing a breakfast setting."),
             'Location': ("Location", "A place where things are situated."),
@@ -178,7 +178,7 @@ class OntologyBuilder:
         self.hasTargetLocation.range = [self.classes['TargetLocation']]
 
     def _create_individuals(self):
-        TestTask = self.classes['ObjectArrangement']("BreakfastObjectArrangementTask")
+        TestTask = self.classes['Object Rearrangement']("BreakfastObjectArrangementTask")
         PaoloBreakfastScenario = self.classes['BreakfastScenario']("PaolosBreakfast")
         TestTask.hasSpecificDescription.append("Arrange objects for breakfast.")
         PaoloBreakfastScenario.hasSpecificDescription.append("Paolo's breakfast scenario.")
