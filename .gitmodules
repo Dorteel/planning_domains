@@ -1,0 +1,3 @@
+[submodule "planonto"]
+	path = planonto
+	url = https://github.com/BharathMuppasani/AI-Planning-Ontology.git

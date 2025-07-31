@@ -3,4 +3,4 @@ unified-planning[engines]
 unified-planning[plot]
 unified-planning[grpc]
 rdflib
-owlready
+owlready2
