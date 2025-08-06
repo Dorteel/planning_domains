@@ -33,6 +33,7 @@ class PlanOnto4UniPlan:
         self.ActionPrecondition = self.onto.search_one(iri="*#ActionPrecondition")
         self.ActionEffect = self.onto.search_one(iri="*#ActionEffect")
         self.ActionParameter = self.onto.search_one(iri="*#ActionParameter")
+        self.AssignmentEffect = self.onto.search_one(iri="*#AssignmentEffect")
         # Aliases to common object types
         self.object = self.onto.search_one(iri="*#object")
 
@@ -50,7 +51,8 @@ class PlanOnto4UniPlan:
         self.hasDomainPredicateName = self.onto.search_one(iri="*#hasDomainPredicateName")
         self.hasDomainPredicateType = self.onto.search_one(iri="*#hasDomainPredicateType")
         self.hasDomainPredicateParameter = self.onto.search_one(iri="*#hasDomainPredicateType")
-
+        self.belongsToDomain = self.onto.search_one(iri="*#belongsToDomain")
+        self.belongsToAction = self.onto.search_one(iri="*#belongsToAction")
         # Utility variables
         self.predicate_lookups = {}
         self.param_lookups = {}
@@ -153,6 +155,32 @@ class PlanOnto4UniPlan:
             for arg in expr.args:
                 self._print_precondition_info(arg, indent + 1)
 
+    def _print_effect(self, effect, indent=0):
+        prefix = "  " * indent
+        if hasattr(effect, "fluent"):
+            fluent = effect.fluent() if callable(effect.fluent) else effect.fluent
+            # Drill down to underlying Fluent object
+            if hasattr(fluent, "fluent"):
+                inner_fluent = fluent.fluent() if callable(fluent.fluent) else fluent.fluent
+                fluent_name = inner_fluent.name
+                fluent_args = fluent.args
+                print(f"{prefix}{fluent_name}({', '.join(str(arg) for arg in fluent_args)}) := {effect.value}")
+            else:
+                print(f"{prefix}Unknown fluent structure: {fluent}")
+        elif hasattr(effect, "condition"):
+            print(f"{prefix}when (")
+            self.print_formula(effect.condition, indent + 1)
+            print(f"{prefix}) do (")
+            self._print_effect(effect.effect, indent + 1)
+            print(f"{prefix})")
+        else:
+            print(f"{prefix}Unknown effect type: {type(effect)}")
+
+    def _print_effects_of_action(self, action):
+        print(f"Effects for action: {action.name}")
+        for effect in getattr(action, "effects", []):
+            self._print_effect(effect, indent=1)
+
     # ==================================
     # PDDL -> PlanOnto Parsing Functions
     # ----------------------------------
@@ -199,12 +227,17 @@ class PlanOnto4UniPlan:
         logging.info(f"Added ActionPrecondition to {action.name} '{formula}'")
         return precondition_indiv
 
-    def add_effect_to_action(self, action, effect_name):
-        effect = self.ActionEffect(effect_name)
-        action.hasEffect.append(effect)
-        effect.label = [locstr(str(effect_name), lang="en")]
-        logging.info(f"Added Effect to {action.name} '{effect_name}'")
-        return effect
+    def add_effect_to_action(self, action_onto, effects, predicate_lookup, param_lookup):
+        effect_inds = []
+        for effect in effects:
+            effect_node = self.formula_to_ontology(effect, predicate_lookup, param_lookup)
+            action_effect = self.ActionEffect()
+            action_effect.hasRootNode.append(effect_node)
+            action_onto.hasEffect.append(action_effect)
+            action_effect.label = [locstr(str(effect), lang="en")]
+            logging.info(f"Added Effect to {action_onto} '{effect}'")
+            effect_inds.append(action_effect)
+        return effect_inds
 
     def add_parameter_to_action(self, action, parameter_name):
         parameter = self.ActionParameter(parameter_name)
@@ -219,6 +252,20 @@ class PlanOnto4UniPlan:
         return requirement
 
     def formula_to_ontology(self, formula, predicate_lookup, param_lookup):
+        if hasattr(formula, "fluent") and hasattr(formula, "value"):
+            # Effect object, not just FNode!
+            fluent = formula.fluent() if callable(formula.fluent) else formula.fluent
+            inner_fluent = fluent.fluent() if hasattr(fluent, "fluent") and callable(fluent.fluent) else getattr(fluent, "fluent", fluent)
+            pred_name = inner_fluent.name
+            fluent_args = [param_lookup[str(arg)] for arg in fluent.args]
+            value = formula.value
+            assignment_effect = self.AssignmentEffect()
+            assignment_effect.assignsFluent.append(predicate_lookup[pred_name])
+            assignment_effect.hasArgument = fluent_args
+            assignment_effect.assignsValue.append(self.up_value_to_python(value))
+            assignment_effect.label = [locstr(f"{pred_name}({', '.join(str(a) for a in fluent.args)}) := {value}", lang="en")]
+            return assignment_effect
+ 
         if formula.is_and():
             and_node = self.And()
             and_node.hasArgument = [
@@ -260,6 +307,21 @@ class PlanOnto4UniPlan:
     # ====================
     # Utility Functions
     # --------------------
+    def up_value_to_python(self, value):
+        # Unified Planning FNode for constant? Use .constant_value() if available.
+        # Otherwise, just pass through.
+        if hasattr(value, "is_bool_constant") and value.is_bool_constant():
+            return bool(value.constant_value())
+        elif hasattr(value, "constant_value"):
+            # For numbers
+            return value.constant_value()
+        elif isinstance(value, (bool, int, float, str)):
+            return value
+        else:
+            raise ValueError(f"Cannot convert UP value '{value}' ({type(value)}) to a Python literal for OWL.")
+
+        
+    
     def save(self, filename="planonto/models/ontoviplan/test-output.owl"):
         self.onto.save(file=filename, format="rdfxml")
         logging.info(f"Ontology saved to {filename}")
@@ -283,6 +345,27 @@ class PlanOnto4UniPlan:
         Uses percent-encoding for the fragment.
         """
         return urllib.parse.quote(str(name), safe='')
+
+    def mark_instances_with_domain(self, domain_instance, source_file ='unknown'):
+        """
+        Annotate all relevant instances with the belongsToDomain property.
+        """
+        # List the classes you want to annotate
+        relevant_classes = [
+            self.DomainAction,
+            self.DomainPredicate,
+            self.DomainPredicateParameter,
+            self.ActionParameter,
+            self.ActionEffect,
+            self.ActionPrecondition,
+            self.AtomicFormula,
+            self.object
+        ]
+        for cls in relevant_classes:
+            for inst in cls.instances():
+                if domain_instance not in inst.belongsToDomain:
+                    inst.belongsToDomain.append(domain_instance)
+                    inst.comment = [f'Created from file: {source_file}']
 
     # ====================
     # OntoViPlan Functions
@@ -310,12 +393,12 @@ class PlanOnto4UniPlan:
                 param_lookup[param.name] = param_indiv
             # Store param_lookup for this domain+action
             self.param_lookups[problem.name][action.name] = param_lookup
-
-            for effect in action.effects:
-                effect_desc = f"{effect.fluent} := {effect.value}"
-                self.add_effect_to_action(action_onto, effect_desc)
+            # self._print_effects_of_action(action)
+            # for effect in action.effects:
+            #     effect_desc = f"{effect.fluent} := {effect.value}"
+            self.add_effect_to_action(action_onto, action.effects, pred_lookup, param_lookup)
             for precondition in action.preconditions:
-                self._print_precondition_info(precondition)
+                # self._print_precondition_info(precondition)
                 # Use the lookups here!
                 self.add_precondition_to_action(
                     action_onto,
@@ -323,7 +406,7 @@ class PlanOnto4UniPlan:
                     predicate_lookup=self.predicate_lookups[problem.name],
                     param_lookup=self.param_lookups[problem.name][action.name]
                 )
-
+        self.mark_instances_with_domain(domain, source_file=domain_filename)
         if save_path:
             self.save(save_path)
         return problem
