@@ -90,6 +90,18 @@ class OntoPlanConverter:
             print(f"  {g}")
         print()
 
+    def _print_onto_classes_and_instances(self):
+        print("== Ontology Classes and Instances ==")
+        for cls in self.onto.classes():
+            print(f"Class: {cls.name}")
+            instances = list(cls.instances())
+            if instances:
+                for inst in instances:
+                    print(f"  - Instance: {inst.name}")
+            else:
+                print("  (no instances)")
+        print("== End ==")
+
     def create_domain(self, name):
         domain = self.PlanningDomain(name)
         print(f"Created PlanningDomain: {domain.name}")
@@ -157,14 +169,25 @@ class OntoPlanConverter:
             self.save(save_path)
         return problem
 
+    def convert_onto2uniproblem(self):
+        pass
+
+    def read_ontology(self, ontology_dir='test/domains/output_domains/', ontology_file="hanoi_planonto.owl"):
+        # Read the ontology
+        self.ontology_dir = ontology_dir
+        onto_path.append(self.ontology_dir)
+        self.onto = get_ontology(ontology_file).load()
+        self._print_onto_classes_and_instances()
+
     def convert_onto2pddl(self, problem: Problem, domain_name="test_domain.pddl", problem_name="test_problem.pddl"):
+        
         writer = PDDLWriter(problem)
         domain_path = self.save_path + problem_name
         problem_path = self.save_path + domain_name
         writer.write_domain(domain_path)
-        writer.write_problem(problem_path)
+        # writer.write_problem(problem_path)
         print(f"Wrote domain to: {domain_path}")
-        print(f"Wrote problem to: {problem_path}")
+        # print(f"Wrote problem to: {problem_path}")
 
 class PromptConstructor:
     def __init__(self, ontology_path):
@@ -260,3 +283,4 @@ if __name__ == "__main__":
     input_path = Path('test/domains/input_domains/') / input_name
     output_path = Path('test/domains/output_domains/') / output_name
     problem = converter.convert_pddl2onto(domain_filename=str(input_path), save_path=str(output_path))
+    converter.read_ontology()
