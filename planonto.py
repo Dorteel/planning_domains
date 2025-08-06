@@ -3,7 +3,7 @@ from owlready2 import get_ontology, onto_path
 from unified_planning.shortcuts import *
 from unified_planning.io import PDDLWriter
 
-class PlanPopulator:
+class OntoPopulator:
     def __init__(self, ontology_dir="planonto/models", ontology_file="plan-ontology-rdf.owl"):
         self.ontology_dir = ontology_dir
         self.ontology_file = ontology_file

@@ -1,6 +1,4 @@
 unified-planning
-unified-planning[engines]
-unified-planning[plot]
-unified-planning[grpc]
+sentence-transformers
 rdflib
 owlready2
