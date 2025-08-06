@@ -6,6 +6,9 @@ from unified_planning.shortcuts import *
 from unified_planning.io import PDDLWriter
 from unified_planning.io import PDDLReader
 from pathlib import Path
+from sentence_transformers import SentenceTransformer, util
+from rdflib import Graph, Namespace
+import urllib.parse
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG,
@@ -13,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt='%Y-%m-%d %H:%M:%S'
                     )
 
-class OntoPlanConverter:
+class PlanOnto4UniPlan:
     def __init__(self, ontology_dir="planonto/models", ontology_file="plan-ontology-rdf.owl"):
         self.ontology_dir = ontology_dir
         self.ontology_file = ontology_file
@@ -24,153 +27,242 @@ class OntoPlanConverter:
         self.PlanningDomain = self.onto.search_one(iri="*#PlanningDomain")
         self.DomainAction = self.onto.search_one(iri="*#DomainAction")
         self.DomainPredicate = self.onto.search_one(iri="*#DomainPredicate")
+        self.DomainPredicateType = self.onto.search_one(iri="*#DomainPredicateType")
+        self.DomainPredicateParameter = self.onto.search_one(iri="*#DomainPredicateParameter")
         self.DomainRequirement = self.onto.search_one(iri="*#DomainRequirement")
         self.ActionPrecondition = self.onto.search_one(iri="*#ActionPrecondition")
         self.ActionEffect = self.onto.search_one(iri="*#ActionEffect")
-        self.Parameter = self.onto.search_one(iri="*#ActionParameter")
+        self.ActionParameter = self.onto.search_one(iri="*#ActionParameter")
+        # Aliases to common object types
+        self.object = self.onto.search_one(iri="*#object")
 
+        # Add connectives
+        self.And = self.onto.And
+        self.Or = self.onto.Or
+        self.Not = self.onto.Not
+        self.AtomicFormula = self.onto.search_one(iri="*#AtomicFormula")
+
+        # Add predicates
         self.hasAction = self.onto.search_one(iri="*#hasAction")
         self.hasPredicate = self.onto.search_one(iri="*#hasPredicate")
         self.hasRequirement = self.onto.search_one(iri="*#hasRequirement")
         self.hasPrecondition = self.onto.search_one(iri="*#hasActionPrecondition")
-        logging.debug(f"self.Parameter: {self.Parameter}")
+        self.hasDomainPredicateName = self.onto.search_one(iri="*#hasDomainPredicateName")
+        self.hasDomainPredicateType = self.onto.search_one(iri="*#hasDomainPredicateType")
+        self.hasDomainPredicateParameter = self.onto.search_one(iri="*#hasDomainPredicateType")
+
+        # Utility variables
+        self.predicate_lookups = {}
+        self.param_lookups = {}
+
+        # Add types
+        self.types = {}
+        TypeClass = self.onto.search_one(iri="*#Type")
+        if TypeClass is None:
+            logging.warning("Type class not found in ontology.")
+        else:
+            for t in TypeClass.subclasses():
+                self.types[t.name] = t
+            logging.info(f"Loaded planning types: {list(self.types.keys())}")
+        logging.debug(f"self.ActionParameter: {self.ActionParameter}")
         logging.debug(f"self.DomainAction: {self.DomainAction}")
         logging.debug(f"self.PlanningDomain: {self.PlanningDomain}")
         logging.debug(f"self.DomainPredicate: {self.DomainPredicate}")
         logging.debug(f"self.hasAction: {self.hasAction}")
         if not all([self.PlanningDomain, self.DomainAction, self.hasAction]):
-            print("Warning: Some expected ontology classes/properties not found. Check your OWL file.")
+            logging.info("Warning: Some expected ontology classes/properties not found. Check your OWL file.")
 
+
+    # ==================================
+    # Debugging functions
+    # ----------------------------------
 
     def _print_up_problem(self, problem):
-        print("== Problem Name ==")
-        print(f"Problem name: {problem.name}\n")
-        print(f"Problem type: {problem.kind}\n")
+        logging.info("== Problem Name ==")
+        logging.info(f"Problem name: {problem.name}\n")
+        logging.info(f"Problem type: {problem.kind}\n")
 
-        print("== Requirements ==")
+        logging.info("== Requirements ==")
         for feature in problem.kind.features:
-            print(f"  {feature}")
+            logging.info(f"  {feature}")
 
-        print("== Types ==")
+        logging.info("== Types ==")
         for t in problem.user_types:
-            print(f"  {t} (Parent: {t.father if t.father else 'None'})")
-        print()
+            logging.info(f"  {t} (Parent: {t.father if t.father else 'None'})")
+        logging.info()
         
-        print("== Objects ==")
+        logging.info("== Objects ==")
         for t in problem.user_types:
             for obj in problem.objects(t.name):
-                print(f"  {obj.name} : {obj.type}")
-        print()
+                logging.info(f"  {obj.name} : {obj.type}")
+        logging.info()
         
-        print("== Fluents ==")
+        logging.info("== Fluents ==")
         for fl in problem.fluents:
-            print(f"  {fl.name}({', '.join(str(p) for p in fl.signature)}) : {fl.type}")
-        print()
+            logging.info(f"  {fl.name}({', '.join(str(p) for p in fl.signature)}) : {fl.type}")
+        logging.info()
         
-        print("== Actions ==")
+        logging.info("== Actions ==")
         for act in problem.actions:
-            print(f"  {act.name}({', '.join(str(p) for p in act.parameters)})")
-            print("    Preconditions:")
+            logging.info(f"  {act.name}({', '.join(str(p) for p in act.parameters)})")
+            logging.info("    Preconditions:")
             if hasattr(act, 'preconditions'):
                 for pre in act.preconditions:
-                    print(f"      {pre}")
+                    logging.info(f"      {pre}")
             if hasattr(act, 'effects'):
-                print("    Effects:")
+                logging.info("    Effects:")
                 for eff in act.effects:
-                    print(f"      {eff}")
-            print()
+                    logging.info(f"      {eff}")
+            logging.info()
         
-        print("== Initial Values ==")
+        logging.info("== Initial Values ==")
         for fl, val in problem.initial_values.items():
-            print(f"  {fl} = {val}")
-        print()
+            logging.info(f"  {fl} = {val}")
+        logging.info()
         
-        print("== Goals ==")
+        logging.info("== Goals ==")
         for g in problem.goals:
-            print(f"  {g}")
-        print()
+            logging.info(f"  {g}")
+        logging.info()
 
     def _print_onto_classes_and_instances(self):
-        print("== Ontology Classes and Instances ==")
+        logging.info("== Ontology Classes and Instances ==")
         for cls in self.onto.classes():
-            print(f"Class: {cls.name}")
+            logging.info(f"Class: {cls.name}")
             instances = list(cls.instances())
             if instances:
                 for inst in instances:
-                    print(f"  - Instance: {inst.name}")
+                    logging.info(f"  - Instance: {inst.name}")
             else:
-                print("  (no instances)")
-        print("== End ==")
+                logging.info("  (no instances)")
+        logging.info("== End ==")
+
+    def _print_predicate_info(self, predicate):
+        print("Fluent:")
+        print(f"  Name: {predicate.name}")
+        print(f"  Type: {predicate.type}")
+        print(f"  Parameters: {predicate.signature}")  # dict of param_name: type
+        print(f"  Arity: {predicate.arity}")
+        print(f"  Default initial value: {getattr(predicate, 'default_initial_value', None)}")
+        print("-" * 40)
+
+    def _print_precondition_info(self, expr, indent=0):
+        prefix = "  " * indent
+        print(f"{prefix}{type(expr).__name__}: {expr}")
+        if hasattr(expr, "args") and expr.args:
+            for arg in expr.args:
+                self._print_precondition_info(arg, indent + 1)
+
+    # ==================================
+    # PDDL -> PlanOnto Parsing Functions
+    # ----------------------------------
 
     def create_domain(self, name):
         domain = self.PlanningDomain(name)
-        print(f"Created PlanningDomain: {domain.name}")
+        logging.info(f"Created PlanningDomain: {domain.name}")
         return domain
 
     def add_action_to_domain(self, domain, action_name):
         action = self.DomainAction(action_name)
         domain.hasAction.append(action)
-        print(f"Added DomainAction to {domain.name} '{action_name}'")
+        logging.info(f"Added DomainAction to {domain.name} '{action_name}'")
         return action
 
-    def add_predicate_to_domain(self, domain, predicate_name):
-        predicate = self.DomainPredicate(predicate_name)
-        domain.hasPredicate.append(predicate)
-        print(f"Added DomainPredicate to {domain.name} '{predicate_name}'")
-        return predicate
+    def add_parameters_to_predicate(self, predicate, parameters):
+        for i in range(len(parameters)):
+            param_type, param_name = str(parameters[i]).split(' ')
+            p = self.DomainPredicateParameter(param_name)
+            if param_type in self.types:
+                self.types[param_type](param_name)
+            else:
+                logging.warning(f"Unknown type: {param_type}")
+            p.hasPredicateParameterIndex.append(i)
+            predicate.hasDomainPredicateParameter.append(p)
+            logging.info(f"Added DomainPredicateParameter to {predicate} '{p}'")
 
-    def add_precondition_to_action(self, action, precondition_name):
-        precondition = self.ActionPrecondition(precondition_name)
-        action.hasPrecondition.append(precondition)
-        print(f"Added ActionPrecondition to {action.name} '{precondition_name}'")
-        return precondition
+    def add_predicate_to_domain(self, domain, predicate):
+        domainpredicate = self.DomainPredicate(predicate.name)
+        domainpredicate.label = [locstr(str(predicate.name), lang="en")]
+        domainPredicateType = self.DomainPredicateType(predicate.type)
+        domain.hasPredicate.append(domainpredicate)
+        domainpredicate.hasDomainPredicateType.append(domainPredicateType)
+        self.add_parameters_to_predicate(domainpredicate, predicate.signature)
+        logging.info(f"Added DomainPredicate to {domain.name} '{predicate.name}'")
+        return domainpredicate
+
+    def add_precondition_to_action(self, action, formula, predicate_lookup, param_lookup):
+        precondition_indiv = self.ActionPrecondition(self.clean_iri(f"{action.name}_precondition"))
+        action.hasPrecondition.append(precondition_indiv)
+        root_formula_node = self.formula_to_ontology(formula, predicate_lookup, param_lookup)
+        precondition_indiv.hasRootNode.append(root_formula_node)
+        precondition_indiv.label = [locstr(str(formula), lang="en")]
+        logging.info(f"Added ActionPrecondition to {action.name} '{formula}'")
+        return precondition_indiv
 
     def add_effect_to_action(self, action, effect_name):
         effect = self.ActionEffect(effect_name)
         action.hasEffect.append(effect)
-        print(f"Added Effect to {action.name} '{effect_name}'")
+        effect.label = [locstr(str(effect_name), lang="en")]
+        logging.info(f"Added Effect to {action.name} '{effect_name}'")
         return effect
 
     def add_parameter_to_action(self, action, parameter_name):
-        parameter = self.Parameter(parameter_name)
+        parameter = self.ActionParameter(parameter_name)
         action.hasParameter.append(parameter)
-        print(f"Added Parameter to {action.name}'{parameter_name}'")
+        logging.info(f"Added Parameter to {action.name}'{parameter_name}'")
         return parameter
 
     def add_requirement_to_domain(self, domain, requirement_name):
         requirement = self.DomainRequirement(requirement_name)
         domain.hasRequirement.append(requirement)
-        print(f"Added DomainRequirement to {domain.name} '{requirement_name}'")
+        logging.info(f"Added DomainRequirement to {domain.name} '{requirement_name}'")
         return requirement
 
+    def formula_to_ontology(self, formula, predicate_lookup, param_lookup):
+        if formula.is_and():
+            and_node = self.And()
+            and_node.hasArgument = [
+                self.formula_to_ontology(child, predicate_lookup, param_lookup)
+                for child in formula.args
+            ]
+            return and_node
+        elif formula.is_or():
+            or_node = self.Or()
+            or_node.hasArgument = [
+                self.formula_to_ontology(child, predicate_lookup, param_lookup)
+                for child in formula.args
+            ]
+            return or_node
+        elif formula.is_not():
+            not_node = self.Not()
+            not_node.hasArgument = [
+                self.formula_to_ontology(formula.args[0], predicate_lookup, param_lookup)
+            ]
+            return not_node
+        elif hasattr(formula, "fluent"):
+            pred = formula.fluent() if callable(formula.fluent) else formula.fluent
+            if hasattr(pred, "name"):
+                pred_name = pred.name
+                atomic_node = self.AtomicFormula()
+                atomic_node.label = [locstr(str(formula), lang="en")]
+                atomic_node.refersToPredicate.append(predicate_lookup[pred_name])
+                atomic_node.hasArgument = [param_lookup[str(arg)] for arg in formula.args]
+                return atomic_node
+            else:
+                raise NotImplementedError(
+                    f"Expected Fluent for atomic formula, got {type(pred)} ({repr(pred)})"
+                )
+        else:
+            raise NotImplementedError(
+                f"Unsupported formula node: {formula} (class: {formula.__class__}, content: {repr(formula)})"
+            )
+
+    # ====================
+    # Utility Functions
+    # --------------------
     def save(self, filename="planonto/models/ontoviplan/test-output.owl"):
         self.onto.save(file=filename, format="rdfxml")
-        print(f"Ontology saved to {filename}")
-
-    def convert_pddl2onto(self, domain_filename=None, problem_filename=None, save_path=None):
-        reader = PDDLReader()
-        problem = reader.parse_problem(domain_filename, problem_filename)
-        domain = self.create_domain(problem.name)
-        self.add_requirement_to_domain(domain, 'strips')
-        for predicate in problem.fluents:
-            self.add_predicate_to_domain(domain, str(predicate))
-        # self._print_up_problem(problem)
-        for action in problem.actions:
-            action_onto = self.add_action_to_domain(domain, action.name)
-            for param in action.parameters:
-                self.add_parameter_to_action(action_onto, param.name)
-            for effect in action.effects:
-                effect_desc = f"{effect.fluent} := {effect.value}"
-                self.add_effect_to_action(action_onto, effect_desc)
-            for precondition in action.preconditions:
-                self.add_precondition_to_action(action_onto, precondition)
-        # Save ontology
-        if save_path:
-            self.save(save_path)
-        return problem
-
-    def convert_onto2uniproblem(self):
-        pass
+        logging.info(f"Ontology saved to {filename}")
 
     def read_ontology(self, ontology_dir='test/domains/output_domains/', ontology_file="hanoi_planonto.owl"):
         # Read the ontology
@@ -179,15 +271,98 @@ class OntoPlanConverter:
         self.onto = get_ontology(ontology_file).load()
         self._print_onto_classes_and_instances()
 
+    def reconstruct_iri(self, cleaned: str) -> str:
+        """
+        Reverses the process from clean_iri.
+        """
+        return urllib.parse.unquote(str(cleaned))
+
+    def clean_iri(self, name: str) -> str:
+        """
+        Converts the full IRI into a readable but reconstructable format.
+        Uses percent-encoding for the fragment.
+        """
+        return urllib.parse.quote(str(name), safe='')
+
+    # ====================
+    # OntoViPlan Functions
+    # --------------------
+
+    def add_pddl2onto(self, domain_filename=None, problem_filename=None, save_path=None):
+        reader = PDDLReader()
+        problem = reader.parse_problem(domain_filename, problem_filename)
+        domain = self.create_domain(problem.name)
+        self.add_requirement_to_domain(domain, 'strips')
+        pred_lookup = {}
+        for predicate in problem.fluents:
+            predicate_indiv = self.add_predicate_to_domain(domain, predicate)
+            pred_lookup[predicate.name] = predicate_indiv
+        # Prepare param lookups for this domain
+        self.param_lookups[problem.name] = {}
+        self.predicate_lookups[problem.name] = pred_lookup
+
+        for action in problem.actions:
+            action_onto = self.add_action_to_domain(domain, action.name)
+            # Build param_lookup for this action
+            param_lookup = {}
+            for param in action.parameters:
+                param_indiv = self.add_parameter_to_action(action_onto, param.name)
+                param_lookup[param.name] = param_indiv
+            # Store param_lookup for this domain+action
+            self.param_lookups[problem.name][action.name] = param_lookup
+
+            for effect in action.effects:
+                effect_desc = f"{effect.fluent} := {effect.value}"
+                self.add_effect_to_action(action_onto, effect_desc)
+            for precondition in action.preconditions:
+                self._print_precondition_info(precondition)
+                # Use the lookups here!
+                self.add_precondition_to_action(
+                    action_onto,
+                    precondition,
+                    predicate_lookup=self.predicate_lookups[problem.name],
+                    param_lookup=self.param_lookups[problem.name][action.name]
+                )
+
+        if save_path:
+            self.save(save_path)
+        return problem
+
+    def convert_domain2uniproblem(self):
+        pass
+
+    def query_all_domain_descriptions(self):
+        pass
+
+    def query_domain_details(self):
+        pass
+
+    def select_matching_domain(self, instruction, model='all-MiniLM-L6-v2'):
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        domain_descriptions = None
+        instruction_embedding = model.encode(instruction, convert_to_tensor=True)
+        domain_description_embeddings = model.encode(domain_descriptions, convert_to_tensor=True)
+        cosine_scores = util.cos_sim(instruction_embedding, domain_description_embeddings)
+        most_similar_idx = cosine_scores.argmax()
+        selected_domain = domain_description_embeddings[most_similar_idx]
+        logging.info(f"Found most similar domain: {selected_domain}")
+        return selected_domain
+
     def convert_onto2pddl(self, problem: Problem, domain_name="test_domain.pddl", problem_name="test_problem.pddl"):
         
         writer = PDDLWriter(problem)
         domain_path = self.save_path + problem_name
-        problem_path = self.save_path + domain_name
-        writer.write_domain(domain_path)
+        writer.write_domain(domain_path)  
+        logging.info(f"Wrote domain to: {domain_path}")
+        # problem_path = self.save_path + domain_name
         # writer.write_problem(problem_path)
-        print(f"Wrote domain to: {domain_path}")
-        # print(f"Wrote problem to: {problem_path}")
+        # logging.info(f"Wrote problem to: {problem_path}")
+
+    def domain_generator(self, instruction):
+        logging.info(f"Generating domain for instruction: {instruction}")
+        selected_domain = self.select_matching_domain(instruction)
+        problem = self.convert_domain2uniproblem(selected_domain)
+        self.convert_onto2pddl(problem)
 
 class PromptConstructor:
     def __init__(self, ontology_path):
@@ -273,14 +448,35 @@ def test_prompts():
     constructor = PromptConstructor("ontology.owl")
     generated_prompts = constructor.construct_prompt()
     for prompt in generated_prompts:
-        print(prompt)
-        print("\n---\n")
+        logging.info(prompt)
+        logging.info("\n---\n")
+
+def query_action_parameters(owl_path, domain_name):
+    g = Graph()
+    g.parse(owl_path)
+    ns = Namespace("http://example.org/ontology.owl#")
+    
+    query = f"""
+    PREFIX : <http://example.org/ontology.owl#>
+    SELECT ?action ?param
+    WHERE {{
+        ?domain a :PlanningDomain ;
+                :hasAction ?action .
+        ?action :hasParameter ?param .
+        FILTER(strends(str(?domain), "#{domain_name}"))
+    }}
+    """
+    for row in g.query(query):
+        action_uri = row['action']
+        param_uri = row['param']
+        print(f"Action: {action_uri}, Parameter: {param_uri}")
 
 if __name__ == "__main__":
-    converter = OntoPlanConverter()
+    converter = PlanOnto4UniPlan()
     input_name = 'hanoi_domain.pddl'
     output_name = 'hanoi_planonto.owl'
     input_path = Path('test/domains/input_domains/') / input_name
     output_path = Path('test/domains/output_domains/') / output_name
-    problem = converter.convert_pddl2onto(domain_filename=str(input_path), save_path=str(output_path))
+    problem = converter.add_pddl2onto(domain_filename=str(input_path), save_path=str(output_path))
     converter.read_ontology()
+    # query_action_parameters("test/domains/output_domains/hanoi_planonto.owl", "hanoi")
