@@ -9,6 +9,7 @@ from pathlib import Path
 from sentence_transformers import SentenceTransformer, util
 from rdflib import Graph, Namespace
 import urllib.parse
+import uuid
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG,
@@ -22,7 +23,7 @@ class PlanOnto4UniPlan:
         self.ontology_file = ontology_file
         onto_path.append(self.ontology_dir)
         self.onto = get_ontology(ontology_file).load()
-
+        print("Annotation properties:", list(self.onto.annotation_properties()))
         # Aliases to common classes, assuming they exist in ontology
         self.PlanningDomain = self.onto.search_one(iri="*#PlanningDomain")
         self.DomainAction = self.onto.search_one(iri="*#DomainAction")
@@ -53,10 +54,11 @@ class PlanOnto4UniPlan:
         self.hasDomainPredicateParameter = self.onto.search_one(iri="*#hasDomainPredicateType")
         self.belongsToDomain = self.onto.search_one(iri="*#belongsToDomain")
         self.belongsToAction = self.onto.search_one(iri="*#belongsToAction")
+        self.hasSyntax = self.onto.hasSyntax
         # Utility variables
         self.predicate_lookups = {}
         self.param_lookups = {}
-
+        self.current_domain_name = None
         # Add types
         self.types = {}
         TypeClass = self.onto.search_one(iri="*#Type")
@@ -181,6 +183,13 @@ class PlanOnto4UniPlan:
         for effect in getattr(action, "effects", []):
             self._print_effect(effect, indent=1)
 
+    def _print_up_types(self, problem):
+        print("== Types in UP Problem ==")
+        for t in problem.user_types:
+            # Each type has a name and an optional parent (father)
+            parent = t.father.name if t.father else "None"
+            print(f"  {t.name} (Parent: {parent})")
+
     # ==================================
     # PDDL -> PlanOnto Parsing Functions
     # ----------------------------------
@@ -196,21 +205,47 @@ class PlanOnto4UniPlan:
         logging.info(f"Added DomainAction to {domain.name} '{action_name}'")
         return action
 
-    def add_parameters_to_predicate(self, predicate, parameters):
-        for i in range(len(parameters)):
-            param_type, param_name = str(parameters[i]).split(' ')
-            p = self.DomainPredicateParameter(param_name)
-            if param_type in self.types:
-                self.types[param_type](param_name)
-            else:
-                logging.warning(f"Unknown type: {param_type}")
-            p.hasPredicateParameterIndex.append(i)
-            predicate.hasDomainPredicateParameter.append(p)
-            logging.info(f"Added DomainPredicateParameter to {predicate} '{p}'")
+    def add_type_recursively(self, up_type):
+        """
+        Recursively adds UP type and its parent(s) as OWL classes.
+        Returns the created/retrieved OWL class.
+        """
+        import types
+        if up_type.name in self.types:
+            return self.types[up_type.name]
+
+        # Determine the parent class
+        if up_type.father:  # There is a parent type
+            parent_cls = self.add_type_recursively(up_type.father)
+        else:
+            parent_cls = self.object
+
+        # Create new class as a subclass of its parent
+        type_cls = types.new_class(up_type.name, (parent_cls,))
+        self.types[up_type.name] = type_cls
+        print(f"Created class {up_type.name} as subclass of {parent_cls.name}")
+        return type_cls
+
+    def add_types(self, problem):
+        for t in problem.user_types:
+            self.add_type_recursively(t)
+
+    def add_parameters_to_predicate(self, domainpredicate, parameters):
+        for param in parameters:
+            unique_name = self.make_unique_name(param.name)
+            param_indiv = self.DomainPredicateParameter(unique_name)
+            # Link to the type class
+            param_type_class = self.types[param.type.name]
+            param_indiv.hasParameterType.append(param_type_class)
+            # Link to the predicate
+            domainpredicate.hasDomainPredicateParameter.append(param_indiv)
+            logging.info(f"Added DomainPredicateParameter '{param.name}' of type '{param.type.name}'")
+            # Optionally, return or store param_indiv if you want
 
     def add_predicate_to_domain(self, domain, predicate):
-        domainpredicate = self.DomainPredicate(predicate.name)
-        domainpredicate.label = [locstr(str(predicate.name), lang="en")]
+        unique_name = self.make_unique_name(predicate.name)
+        domainpredicate = self.DomainPredicate(unique_name)
+        domainpredicate.label = [locstr(str(predicate), lang="en")]
         domainPredicateType = self.DomainPredicateType(predicate.type)
         domain.hasPredicate.append(domainpredicate)
         domainpredicate.hasDomainPredicateType.append(domainPredicateType)
@@ -219,7 +254,8 @@ class PlanOnto4UniPlan:
         return domainpredicate
 
     def add_precondition_to_action(self, action, formula, predicate_lookup, param_lookup):
-        precondition_indiv = self.ActionPrecondition(self.clean_iri(f"{action.name}_precondition"))
+        unique_name = self.make_unique_name(action.name)
+        precondition_indiv = self.ActionPrecondition(self.clean_iri(f"{unique_name}_precondition"))
         action.hasPrecondition.append(precondition_indiv)
         root_formula_node = self.formula_to_ontology(formula, predicate_lookup, param_lookup)
         precondition_indiv.hasRootNode.append(root_formula_node)
@@ -239,11 +275,25 @@ class PlanOnto4UniPlan:
             effect_inds.append(action_effect)
         return effect_inds
 
-    def add_parameter_to_action(self, action, parameter_name):
-        parameter = self.ActionParameter(parameter_name)
-        action.hasParameter.append(parameter)
-        logging.info(f"Added Parameter to {action.name}'{parameter_name}'")
+    def add_parameter_to_action(self, action_onto, action):
+        unique_name = self.make_unique_name(f"{action.name}_params")
+        parameter = self.ActionParameter(unique_name)
+        parameter.hasSyntax = [locstr(str(action), lang="en")]
+        parameter.label = [locstr(str(f"{action.name}_params"), lang="en")]
+        action_onto.hasParameter.append(parameter)
+        logging.info(f"Added ActionParameter '{unique_name}' to {action.name}")
         return parameter
+
+    def add_parameter_type_to_action_parameter(self, param_complex, param):
+        """
+        param_complex: The 'big' ActionParameter individual (for the action)
+        param: The unified-planning parameter object (has .name and .type)
+        """
+        param_type_name = param.type.name
+        param_type_indiv = self.types[param_type_name]
+        param_complex.hasParameterType.append(param_type_indiv)
+        logging.info(f"Linked parameter type {param_type_name} to ActionParameter '{param_complex.name}'")
+        return param_type_indiv
 
     def add_requirement_to_domain(self, domain, requirement_name):
         requirement = self.DomainRequirement(requirement_name)
@@ -307,6 +357,11 @@ class PlanOnto4UniPlan:
     # ====================
     # Utility Functions
     # --------------------
+
+    def make_unique_name(self, base_name):
+        rand_id = uuid.uuid4().hex[:8]  # short random hex
+        return f"{self.current_domain_name}_{base_name}_{rand_id}"
+
     def up_value_to_python(self, value):
         # Unified Planning FNode for constant? Use .constant_value() if available.
         # Otherwise, just pass through.
@@ -319,8 +374,6 @@ class PlanOnto4UniPlan:
             return value
         else:
             raise ValueError(f"Cannot convert UP value '{value}' ({type(value)}) to a Python literal for OWL.")
-
-        
     
     def save(self, filename="planonto/models/ontoviplan/test-output.owl"):
         self.onto.save(file=filename, format="rdfxml")
@@ -331,7 +384,7 @@ class PlanOnto4UniPlan:
         self.ontology_dir = ontology_dir
         onto_path.append(self.ontology_dir)
         self.onto = get_ontology(ontology_file).load()
-        self._print_onto_classes_and_instances()
+        # self._print_onto_classes_and_instances()
 
     def reconstruct_iri(self, cleaned: str) -> str:
         """
@@ -374,10 +427,14 @@ class PlanOnto4UniPlan:
     def add_pddl2onto(self, domain_filename=None, problem_filename=None, save_path=None):
         reader = PDDLReader()
         problem = reader.parse_problem(domain_filename, problem_filename)
+        self._print_up_types(problem)
         domain = self.create_domain(problem.name)
+        self.current_domain_name = problem.name
         self.add_requirement_to_domain(domain, 'strips')
+        self.add_types(problem)
         pred_lookup = {}
         for predicate in problem.fluents:
+            print(predicate)
             predicate_indiv = self.add_predicate_to_domain(domain, predicate)
             pred_lookup[predicate.name] = predicate_indiv
         # Prepare param lookups for this domain
@@ -385,21 +442,24 @@ class PlanOnto4UniPlan:
         self.predicate_lookups[problem.name] = pred_lookup
 
         for action in problem.actions:
-            action_onto = self.add_action_to_domain(domain, action.name)
-            # Build param_lookup for this action
+            unique_name = self.make_unique_name(action.name)
+            action_onto = self.add_action_to_domain(domain, unique_name)
+            action_onto.label = [locstr(str(action.name), lang="en")]
             param_lookup = {}
+            # Create a single ActionParameter individual for all parameters of this action
+            #param_complex = self.add_parameter_to_action(action_onto, f"{action.name}_params")
+            param_complex = self.add_parameter_to_action(action_onto, action)
             for param in action.parameters:
-                param_indiv = self.add_parameter_to_action(action_onto, param.name)
-                param_lookup[param.name] = param_indiv
+                # Add a link from param_complex to this parameter's type
+                param_type_indiv = self.add_parameter_type_to_action_parameter(param_complex, param)
+                param_lookup[param.name] = param_type_indiv
+
             # Store param_lookup for this domain+action
             self.param_lookups[problem.name][action.name] = param_lookup
-            # self._print_effects_of_action(action)
-            # for effect in action.effects:
-            #     effect_desc = f"{effect.fluent} := {effect.value}"
+
             self.add_effect_to_action(action_onto, action.effects, pred_lookup, param_lookup)
             for precondition in action.preconditions:
-                # self._print_precondition_info(precondition)
-                # Use the lookups here!
+
                 self.add_precondition_to_action(
                     action_onto,
                     precondition,
@@ -556,8 +616,15 @@ def query_action_parameters(owl_path, domain_name):
 
 if __name__ == "__main__":
     converter = PlanOnto4UniPlan()
+    input_name = 'blocksworld_domain.pddl'
+    output_name = 'blocksworld_planonto.owl'
+
     input_name = 'hanoi_domain.pddl'
     output_name = 'hanoi_planonto.owl'
+
+    # input_name = 'object-arrangement_domain.pddl'
+    # output_name = 'object-arrangement_planonto.owl'
+
     input_path = Path('test/domains/input_domains/') / input_name
     output_path = Path('test/domains/output_domains/') / output_name
     problem = converter.add_pddl2onto(domain_filename=str(input_path), save_path=str(output_path))

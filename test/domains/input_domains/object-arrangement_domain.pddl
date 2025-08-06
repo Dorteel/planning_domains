@@ -11,7 +11,6 @@
     robot  - object
     glass - object
     mug - object
-    plate - object
     screwdriver - object
     bowl - object
     fruit - food 

@@ -126,6 +126,8 @@
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">a property that relates an action to an action parameter that is involved in it</rdfs:comment>
 </owl:ObjectProperty>
 
+<owl:ObjectProperty rdf:about="#hasParameterType"/>
+
 <owl:ObjectProperty rdf:about="#hasPlan">
   <rdfs:domain rdf:resource="#PlanningProblem"/>
   <rdfs:range rdf:resource="#Plan"/>
@@ -213,7 +215,9 @@
   <rdfs:comment xml:lang="en">a property that relates a planner to a domain requirement that it can handle or satisfy</rdfs:comment>
 </owl:ObjectProperty>
 
-<owl:DatatypeProperty rdf:about="#assignsValue"/>
+<owl:DatatypeProperty rdf:about="#assignsValue">
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Holds the value assignment of an effect</rdfs:comment>
+</owl:DatatypeProperty>
 
 <owl:DatatypeProperty rdf:about="#hasArgumentIndex">
   <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#nonNegativeInteger"/>
@@ -227,6 +231,10 @@
 <owl:DatatypeProperty rdf:about="#hasPredicateParameterIndex">
   <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
   <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#nonNegativeInteger"/>
+</owl:DatatypeProperty>
+
+<owl:DatatypeProperty rdf:about="#hasSyntax">
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Utility data property to preserve syntax</rdfs:comment>
 </owl:DatatypeProperty>
 
 <owl:AnnotationProperty rdf:about="http://purl.org/dc/terms/contributor"/>
@@ -425,22 +433,22 @@
 <owl:NamedIndividual rdf:about="#hanoi">
   <rdf:type rdf:resource="#PlanningDomain"/>
   <hasRequirement rdf:resource="#strips"/>
-  <hasPredicate rdf:resource="#clear"/>
-  <hasPredicate rdf:resource="#on"/>
-  <hasPredicate rdf:resource="#smaller"/>
-  <hasAction rdf:resource="#move"/>
+  <hasPredicate rdf:resource="#hanoi_clear_f767fa1b"/>
+  <hasPredicate rdf:resource="#hanoi_on_9bd8d997"/>
+  <hasPredicate rdf:resource="#hanoi_smaller_700b24da"/>
+  <hasAction rdf:resource="#hanoi_move_2381946f"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#strips">
   <rdf:type rdf:resource="#DomainRequirement"/>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#clear">
+<owl:NamedIndividual rdf:about="#hanoi_clear_f767fa1b">
   <rdf:type rdf:resource="#DomainPredicate"/>
   <hasDomainPredicateType rdf:resource="#bool"/>
-  <hasDomainPredicateParameter rdf:resource="#x"/>
+  <hasDomainPredicateParameter rdf:resource="#hanoi_x_1af26669"/>
   <belongsToDomain rdf:resource="#hanoi"/>
-  <rdfs:label xml:lang="en">clear</rdfs:label>
+  <rdfs:label xml:lang="en">bool clear[x=object]</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
@@ -448,78 +456,97 @@
   <rdf:type rdf:resource="#DomainPredicateType"/>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#x">
+<owl:NamedIndividual rdf:about="#hanoi_x_1af26669">
   <rdf:type rdf:resource="#DomainPredicateParameter"/>
-  <rdf:type rdf:resource="#object"/>
+  <hasParameterType rdf:resource="#object"/>
   <belongsToDomain rdf:resource="#hanoi"/>
-  <hasPredicateParameterIndex rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">0</hasPredicateParameterIndex>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#on">
+<owl:NamedIndividual rdf:about="#hanoi_on_9bd8d997">
   <rdf:type rdf:resource="#DomainPredicate"/>
   <hasDomainPredicateType rdf:resource="#bool"/>
-  <hasDomainPredicateParameter rdf:resource="#x"/>
-  <hasDomainPredicateParameter rdf:resource="#y"/>
+  <hasDomainPredicateParameter rdf:resource="#hanoi_x_c4354fb3"/>
+  <hasDomainPredicateParameter rdf:resource="#hanoi_y_841cc164"/>
   <belongsToDomain rdf:resource="#hanoi"/>
-  <rdfs:label xml:lang="en">on</rdfs:label>
+  <rdfs:label xml:lang="en">bool on[x=object, y=object]</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#y">
+<owl:NamedIndividual rdf:about="#hanoi_x_c4354fb3">
   <rdf:type rdf:resource="#DomainPredicateParameter"/>
-  <rdf:type rdf:resource="#object"/>
+  <hasParameterType rdf:resource="#object"/>
   <belongsToDomain rdf:resource="#hanoi"/>
-  <hasPredicateParameterIndex rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</hasPredicateParameterIndex>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#smaller">
+<owl:NamedIndividual rdf:about="#hanoi_y_841cc164">
+  <rdf:type rdf:resource="#DomainPredicateParameter"/>
+  <hasParameterType rdf:resource="#object"/>
+  <belongsToDomain rdf:resource="#hanoi"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#hanoi_smaller_700b24da">
   <rdf:type rdf:resource="#DomainPredicate"/>
   <hasDomainPredicateType rdf:resource="#bool"/>
-  <hasDomainPredicateParameter rdf:resource="#x"/>
-  <hasDomainPredicateParameter rdf:resource="#y"/>
+  <hasDomainPredicateParameter rdf:resource="#hanoi_x_67def838"/>
+  <hasDomainPredicateParameter rdf:resource="#hanoi_y_eca97c7d"/>
   <belongsToDomain rdf:resource="#hanoi"/>
-  <rdfs:label xml:lang="en">smaller</rdfs:label>
+  <rdfs:label xml:lang="en">bool smaller[x=object, y=object]</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#move">
+<owl:NamedIndividual rdf:about="#hanoi_x_67def838">
+  <rdf:type rdf:resource="#DomainPredicateParameter"/>
+  <hasParameterType rdf:resource="#object"/>
+  <belongsToDomain rdf:resource="#hanoi"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#hanoi_y_eca97c7d">
+  <rdf:type rdf:resource="#DomainPredicateParameter"/>
+  <hasParameterType rdf:resource="#object"/>
+  <belongsToDomain rdf:resource="#hanoi"/>
+  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#hanoi_move_2381946f">
   <rdf:type rdf:resource="#DomainAction"/>
-  <hasParameter rdf:resource="#disc"/>
-  <hasParameter rdf:resource="#from"/>
-  <hasParameter rdf:resource="#to"/>
+  <hasParameter rdf:resource="#hanoi_move_params_328f475a"/>
   <hasEffect rdf:resource="#actioneffect1"/>
   <hasEffect rdf:resource="#actioneffect2"/>
   <hasEffect rdf:resource="#actioneffect3"/>
   <hasEffect rdf:resource="#actioneffect4"/>
-  <hasPrecondition rdf:resource="#move_precondition"/>
+  <hasPrecondition rdf:resource="#hanoi_hanoi_move_2381946f_7cbb159a_precondition"/>
   <belongsToDomain rdf:resource="#hanoi"/>
+  <rdfs:label xml:lang="en">move</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#disc">
+<owl:NamedIndividual rdf:about="#hanoi_move_params_328f475a">
   <rdf:type rdf:resource="#ActionParameter"/>
+  <hasParameterType rdf:resource="#object"/>
   <belongsToDomain rdf:resource="#hanoi"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
-</owl:NamedIndividual>
-
-<owl:NamedIndividual rdf:about="#from">
-  <rdf:type rdf:resource="#ActionParameter"/>
-  <belongsToDomain rdf:resource="#hanoi"/>
-  <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
-</owl:NamedIndividual>
-
-<owl:NamedIndividual rdf:about="#to">
-  <rdf:type rdf:resource="#ActionParameter"/>
-  <belongsToDomain rdf:resource="#hanoi"/>
+  <hasSyntax xml:lang="en">action move(object disc, object from, object to) {
+    preconditions = [
+      (smaller(disc, to) and on(disc, from) and clear(disc) and clear(to))
+    ]
+    effects = [
+      clear(from) := true
+      on(disc, to) := true
+      on(disc, from) := false
+      clear(to) := false
+    ]
+  }</hasSyntax>
+  <rdfs:label xml:lang="en">move_params</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#assignmenteffect1">
   <rdf:type rdf:resource="#AssignmentEffect"/>
-  <assignsFluent rdf:resource="#clear"/>
-  <hasArgument rdf:resource="#from"/>
+  <assignsFluent rdf:resource="#hanoi_clear_f767fa1b"/>
+  <hasArgument rdf:resource="#object"/>
   <assignsValue rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</assignsValue>
   <rdfs:label xml:lang="en">clear(from) := true</rdfs:label>
 </owl:NamedIndividual>
@@ -534,9 +561,8 @@
 
 <owl:NamedIndividual rdf:about="#assignmenteffect2">
   <rdf:type rdf:resource="#AssignmentEffect"/>
-  <assignsFluent rdf:resource="#on"/>
-  <hasArgument rdf:resource="#to"/>
-  <hasArgument rdf:resource="#disc"/>
+  <assignsFluent rdf:resource="#hanoi_on_9bd8d997"/>
+  <hasArgument rdf:resource="#object"/>
   <assignsValue rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</assignsValue>
   <rdfs:label xml:lang="en">on(disc, to) := true</rdfs:label>
 </owl:NamedIndividual>
@@ -551,9 +577,8 @@
 
 <owl:NamedIndividual rdf:about="#assignmenteffect3">
   <rdf:type rdf:resource="#AssignmentEffect"/>
-  <assignsFluent rdf:resource="#on"/>
-  <hasArgument rdf:resource="#disc"/>
-  <hasArgument rdf:resource="#from"/>
+  <assignsFluent rdf:resource="#hanoi_on_9bd8d997"/>
+  <hasArgument rdf:resource="#object"/>
   <assignsValue rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</assignsValue>
   <rdfs:label xml:lang="en">on(disc, from) := false</rdfs:label>
 </owl:NamedIndividual>
@@ -568,8 +593,8 @@
 
 <owl:NamedIndividual rdf:about="#assignmenteffect4">
   <rdf:type rdf:resource="#AssignmentEffect"/>
-  <assignsFluent rdf:resource="#clear"/>
-  <hasArgument rdf:resource="#to"/>
+  <assignsFluent rdf:resource="#hanoi_clear_f767fa1b"/>
+  <hasArgument rdf:resource="#object"/>
   <assignsValue rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</assignsValue>
   <rdfs:label xml:lang="en">clear(to) := false</rdfs:label>
 </owl:NamedIndividual>
@@ -582,7 +607,7 @@
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
 </owl:NamedIndividual>
 
-<owl:NamedIndividual rdf:about="#move_precondition">
+<owl:NamedIndividual rdf:about="#hanoi_hanoi_move_2381946f_7cbb159a_precondition">
   <rdf:type rdf:resource="#ActionPrecondition"/>
   <hasRootNode rdf:resource="#and1"/>
   <belongsToDomain rdf:resource="#hanoi"/>
@@ -592,17 +617,16 @@
 
 <owl:NamedIndividual rdf:about="#and1">
   <rdf:type rdf:resource="#And"/>
+  <hasArgument rdf:resource="#atomicformula4"/>
   <hasArgument rdf:resource="#atomicformula2"/>
   <hasArgument rdf:resource="#atomicformula1"/>
   <hasArgument rdf:resource="#atomicformula3"/>
-  <hasArgument rdf:resource="#atomicformula4"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#atomicformula1">
   <rdf:type rdf:resource="#AtomicFormula"/>
-  <refersToPredicate rdf:resource="#smaller"/>
-  <hasArgument rdf:resource="#to"/>
-  <hasArgument rdf:resource="#disc"/>
+  <refersToPredicate rdf:resource="#hanoi_smaller_700b24da"/>
+  <hasArgument rdf:resource="#object"/>
   <belongsToDomain rdf:resource="#hanoi"/>
   <rdfs:label xml:lang="en">smaller(disc, to)</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
@@ -610,9 +634,8 @@
 
 <owl:NamedIndividual rdf:about="#atomicformula2">
   <rdf:type rdf:resource="#AtomicFormula"/>
-  <refersToPredicate rdf:resource="#on"/>
-  <hasArgument rdf:resource="#disc"/>
-  <hasArgument rdf:resource="#from"/>
+  <refersToPredicate rdf:resource="#hanoi_on_9bd8d997"/>
+  <hasArgument rdf:resource="#object"/>
   <belongsToDomain rdf:resource="#hanoi"/>
   <rdfs:label xml:lang="en">on(disc, from)</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
@@ -620,8 +643,8 @@
 
 <owl:NamedIndividual rdf:about="#atomicformula3">
   <rdf:type rdf:resource="#AtomicFormula"/>
-  <refersToPredicate rdf:resource="#clear"/>
-  <hasArgument rdf:resource="#disc"/>
+  <refersToPredicate rdf:resource="#hanoi_clear_f767fa1b"/>
+  <hasArgument rdf:resource="#object"/>
   <belongsToDomain rdf:resource="#hanoi"/>
   <rdfs:label xml:lang="en">clear(disc)</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
@@ -629,8 +652,8 @@
 
 <owl:NamedIndividual rdf:about="#atomicformula4">
   <rdf:type rdf:resource="#AtomicFormula"/>
-  <refersToPredicate rdf:resource="#clear"/>
-  <hasArgument rdf:resource="#to"/>
+  <refersToPredicate rdf:resource="#hanoi_clear_f767fa1b"/>
+  <hasArgument rdf:resource="#object"/>
   <belongsToDomain rdf:resource="#hanoi"/>
   <rdfs:label xml:lang="en">clear(to)</rdfs:label>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Created from file: test/domains/input_domains/hanoi_domain.pddl</rdfs:comment>
