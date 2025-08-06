@@ -10,12 +10,18 @@ from sentence_transformers import SentenceTransformer, util
 from rdflib import Graph, Namespace
 import urllib.parse
 import uuid
-
+import os
 # Set up logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s]: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S'
                     )
+
+logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)  # sometimes used by huggingface
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
 
 class PlanOnto4UniPlan:
     def __init__(self, ontology_dir="planonto/models", ontology_file="plan-ontology-rdf.owl"):
@@ -55,6 +61,7 @@ class PlanOnto4UniPlan:
         self.belongsToDomain = self.onto.search_one(iri="*#belongsToDomain")
         self.belongsToAction = self.onto.search_one(iri="*#belongsToAction")
         self.hasSyntax = self.onto.hasSyntax
+        self.hasGeneralDomainDescription = self.onto.search_one(iri="*#hasGeneralDomainDescription")
         # Utility variables
         self.predicate_lookups = {}
         self.param_lookups = {}
@@ -379,7 +386,7 @@ class PlanOnto4UniPlan:
         self.onto.save(file=filename, format="rdfxml")
         logging.info(f"Ontology saved to {filename}")
 
-    def read_ontology(self, ontology_dir='test/domains/output_domains/', ontology_file="hanoi_planonto.owl"):
+    def read_ontology(self, ontology_dir='test/output_onto/', ontology_file="hanoi_planonto.owl"):
         # Read the ontology
         self.ontology_dir = ontology_dir
         onto_path.append(self.ontology_dir)
@@ -423,6 +430,9 @@ class PlanOnto4UniPlan:
     # ====================
     # OntoViPlan Functions
     # --------------------
+
+    def add_task_annotation(self, domain, annotation_content):
+        pass
 
     def add_pddl2onto(self, domain_filename=None, problem_filename=None, save_path=None):
         reader = PDDLReader()
@@ -480,16 +490,51 @@ class PlanOnto4UniPlan:
     def query_domain_details(self):
         pass
 
-    def select_matching_domain(self, instruction, model='all-MiniLM-L6-v2'):
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        domain_descriptions = None
-        instruction_embedding = model.encode(instruction, convert_to_tensor=True)
-        domain_description_embeddings = model.encode(domain_descriptions, convert_to_tensor=True)
-        cosine_scores = util.cos_sim(instruction_embedding, domain_description_embeddings)
-        most_similar_idx = cosine_scores.argmax()
-        selected_domain = domain_description_embeddings[most_similar_idx]
-        logging.info(f"Found most similar domain: {selected_domain}")
-        return selected_domain
+    def select_matching_domain(self, instruction, model_name='all-MiniLM-L6-v2'):
+        """
+        Given a natural language instruction, returns the PlanningDomain individual whose
+        hasGeneralDomainDescription is closest in semantic embedding space.
+        Returns the domain individual (not just the name).
+        """
+        # 1. Load the embedding model
+        model = SentenceTransformer(model_name)
+        
+        # 2. Gather all PlanningDomain instances and their descriptions
+        domains = list(self.PlanningDomain.instances())
+        if not domains:
+            logging.warning("No PlanningDomain instances found in ontology.")
+            return None
+
+        descriptions = []
+        for domain in domains:
+            # Attempt to extract the description (first entry) as a string.
+            desc_list = getattr(domain, "hasGeneralDomainDescription", [])
+            if desc_list:
+                # Each entry might be an Owlready2 locstr or string; get the value as str
+                desc_str = str(desc_list[0])
+            else:
+                # If missing, fallback to the domain name, or skip, or put placeholder.
+                desc_str = domain.name
+            descriptions.append(desc_str)
+        
+        # 3. Encode instruction and all descriptions
+        instruction_emb = model.encode(instruction, convert_to_tensor=True)
+        description_embs = model.encode(descriptions, convert_to_tensor=True)
+        
+        # 4. Compute similarities
+        cosine_scores = util.cos_sim(instruction_emb, description_embs)
+        most_similar_idx = cosine_scores.argmax().item()
+        best_domain = domains[most_similar_idx]
+        best_score = cosine_scores[0, most_similar_idx].item()
+
+        logging.info(f"Best matching domain: {best_domain.name} (score={best_score:.3f})")
+        return best_domain 
+
+    def get_domain_indiv(self, domain_name=None):
+        for dom in self.onto.PlanningDomain.instances():
+            if (domain_name is None) or (dom.name == domain_name):
+                return dom
+        raise ValueError(f"No PlanningDomain with name {domain_name}")
 
     def convert_onto2pddl(self, problem: Problem, domain_name="test_domain.pddl", problem_name="test_problem.pddl"):
         
@@ -506,16 +551,6 @@ class PlanOnto4UniPlan:
         selected_domain = self.select_matching_domain(instruction)
         problem = self.convert_domain2uniproblem(selected_domain)
         self.convert_onto2pddl(problem)
-
-class PromptConstructor:
-    def __init__(self, ontology_path):
-        self.graph = Graph()
-        self.graph.parse(ontology_path)
-        self.ns = Namespace("http://example.org/ontology.owl#")
-        self.logger = logging.getLogger(__name__)
-        self.logger.info(f"Ontology loaded from {ontology_path} with {len(self.graph)} triples.")
-
-    def construct_prompt(self):
         prompts = []
 
         # query = """
@@ -582,6 +617,87 @@ class PromptConstructor:
 
         return prompts
 
+    def add_domain_description_interactive(self):
+        # 1. Find all PlanningDomain individuals
+        domains = list(self.PlanningDomain.instances())
+        if not domains:
+            print("No domains found in ontology.")
+            return
+
+        # 2. Print available domains for user selection
+        print("Available domains:")
+        for idx, dom in enumerate(domains):
+            # Print name and optionally existing description
+            desc = dom.__dict__.get('hasGeneralDomainDescription', [])
+            desc_str = f" [Current description: '{desc[0]}' ]" if desc else ""
+            print(f"{idx}: {dom.name}{desc_str}")
+
+        # 3. Ask user to select one by index
+        while True:
+            try:
+                sel = int(input("Enter the number of the domain to describe: "))
+                if 0 <= sel < len(domains):
+                    break
+                else:
+                    print("Invalid selection, try again.")
+            except ValueError:
+                print("Please enter a valid integer.")
+
+        domain = domains[sel]
+
+        # 4. Ask user for a description
+        description = input(f"Enter a description for domain '{domain.name}': ").strip()
+        if not description:
+            print("No description entered. Aborting.")
+            return
+
+        # 5. Attach the description using the annotation property
+        # as a LocallyString (locstr) if you want to support language tags.
+        domain.hasGeneralDomainDescription = [locstr(description, lang="en")]
+
+        print(f"Description added to domain '{domain.name}': \"{description}\"")
+        logging.info(f"Added hasGeneralDomainDescription to {domain.name}: {description}")
+
+
+    def test_domain_matching(self, input_path):
+        """
+        For a folder, processes all .txt files. For a file, just that file.
+        For each text file, prints:
+        - the file name
+        - the file content (instruction)
+        - the best matching domain and its description
+        """
+        paths = []
+        if os.path.isdir(input_path):
+            # All .txt files in the folder (not recursive)
+            paths = [os.path.join(input_path, f) for f in os.listdir(input_path)
+                    if f.endswith('.txt') and os.path.isfile(os.path.join(input_path, f))]
+            if not paths:
+                print("No .txt files found in the folder.")
+                return
+        elif os.path.isfile(input_path):
+            paths = [input_path]
+        else:
+            print(f"Path does not exist: {input_path}")
+            return
+
+        for file_path in paths:
+            with open(file_path, "r", encoding="utf-8") as f:
+                instruction = f.read().strip()
+
+            print("="*40)
+            print(f"File: {file_path}")
+            print("Input instruction:")
+            print(instruction)
+            best_domain = self.select_matching_domain(instruction)
+            if best_domain:
+                # Get domain description (if any)
+                desc = getattr(best_domain, "hasGeneralDomainDescription", [""])[0]
+                print(f"\nBest matching domain: {best_domain.name}")
+                print(f"Domain description: {desc}")
+            else:
+                print("No matching domain found.")
+            print("="*40 + "\n")
 
 #=======================
 # Testing functions
@@ -624,9 +740,15 @@ if __name__ == "__main__":
 
     # input_name = 'object-arrangement_domain.pddl'
     # output_name = 'object-arrangement_planonto.owl'
-
-    input_path = Path('test/domains/input_domains/') / input_name
-    output_path = Path('test/domains/output_domains/') / output_name
-    problem = converter.add_pddl2onto(domain_filename=str(input_path), save_path=str(output_path))
-    converter.read_ontology()
+    multiple_domains =['blocksworld_domain.pddl', 'hanoi_domain.pddl', 'object-arrangement_domain.pddl']
+    output_name = 'combined.owl'
+    for input_name in multiple_domains:
+        input_path = Path('test/domains/input_domains/') / input_name
+        output_path = Path('test/output_onto/') / output_name
+        problem = converter.add_pddl2onto(domain_filename=str(input_path), save_path=str(output_path))
+        converter.add_domain_description_interactive()
+        converter.save("test/output_onto/ontology_with_descriptions.owl")
+    # converter.read_ontology()
     # query_action_parameters("test/domains/output_domains/hanoi_planonto.owl", "hanoi")
+
+    converter.test_domain_matching("test/instructions")
