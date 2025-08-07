@@ -361,6 +361,115 @@ class PlanOnto4UniPlan:
                 f"Unsupported formula node: {formula} (class: {formula.__class__}, content: {repr(formula)})"
             )
 
+
+    # ==================================
+    # PlanOnto --> PDDL Parsing Functions
+    # ----------------------------------
+
+    def get_domain_indiv(self, domain_name=None):
+        logging.info(f"Looking for PlanningDomain individual with name: {domain_name}")
+        for dom in self.onto.PlanningDomain.instances():
+            logging.debug(f"Found domain individual: {dom.name}")
+            if (domain_name is None) or (dom.name == domain_name):
+                return dom
+        logging.warning(f"No PlanningDomain with name {domain_name}")
+        raise ValueError(f"No PlanningDomain with name {domain_name}")
+
+    def extract_types(self, domain_ind):
+        types = {}  # {type_name: up.UserType}
+        logging.info("Extracting types from ontology...")
+        for type_cls in self.onto.object.subclasses():
+            if type_cls.name != "object":
+                types[type_cls.name] = UserType(type_cls.name)
+                logging.debug(f"Added user type: {type_cls.name}")
+        return types
+
+    def extract_objects(self, types):
+        objects = {}  # {obj_name: (up.Object, type)}
+        logging.info("Extracting objects from ontology...")
+        for type_name, up_type in types.items():
+            owl_class = self.onto[type_name]
+            for indiv in owl_class.instances():
+                objects[indiv.name] = (Object(indiv.name, up_type), up_type)
+                logging.debug(f"Added object: {indiv.name} (type: {type_name})")
+        return objects
+
+    def extract_fluents(self, domain_ind, types):
+        fluents = {}
+        logging.info("Extracting fluents (predicates) from ontology...")
+        for pred in domain_ind.hasPredicate:
+            pred_name = pred.name
+            param_list = []
+            for param in pred.hasDomainPredicateParameter:
+                param_type = types[param.hasParameterType[0].name]  # assume first is correct
+                param_list.append((param.name, param_type))
+                logging.debug(f"Fluent '{pred_name}': found parameter {param.name} of type {param_type}")
+            fluent = Fluent(pred_name, BoolType(), **{n: t for n, t in param_list})
+            fluents[pred_name] = fluent
+            logging.debug(f"Added fluent: {pred_name} ({param_list})")
+        return fluents
+
+    def extract_actions(self, domain_ind, types, fluents):
+        actions = []
+        logging.info("Extracting actions from ontology...")
+        for act in domain_ind.hasAction:
+            act_name = act.name
+            params = []
+            for param in act.hasParameter:
+                param_type = types[param.hasParameterType[0].name]
+                params.append((param.name, param_type))
+                logging.debug(f"Action '{act_name}': found parameter {param.name} of type {param_type}")
+            up_action = InstantaneousAction(act_name, **{n: t for n, t in params})
+            logging.debug(f"Created InstantaneousAction '{act_name}' with params: {params}")
+            # Parse preconditions/effects recursively from ontology structure
+            if hasattr(act, "hasActionPrecondition"):
+                for pre in act.hasActionPrecondition:
+                    logging.debug(f"Parsing precondition for action '{act_name}': {pre}")
+                    up_action.add_precondition(self.parse_ontology_formula(pre.hasRoot, fluents, params))
+            if hasattr(act, "hasEffect"):
+                for eff in act.hasEffect:
+                    logging.debug(f"Parsing effect for action '{act_name}': {eff}")
+                    up_action.add_effect(self.parse_ontology_effect(eff.hasRootNode, fluents, params))
+            actions.append(up_action)
+            logging.info(f"Added action: {act_name}")
+        return actions
+
+    def ontology_to_up_problem(self, domain_name=None):
+        logging.info(f"Starting ontology-to-UP problem reconstruction for domain: {domain_name}")
+        domain_ind = self.get_domain_indiv(domain_name)
+        types = self.extract_types(domain_ind)
+        objects = self.extract_objects(types)
+        fluents = self.extract_fluents(domain_ind, types)
+        actions = self.extract_actions(domain_ind, types, fluents)
+        problem = Problem(domain_ind.name)
+        for t in types.values():
+            problem.add_user_type(t)
+            logging.debug(f"Added user type to problem: {t}")
+        for obj, typ in objects.values():
+            problem.add_object(obj)
+            logging.debug(f"Added object to problem: {obj}")
+        for fluent in fluents.values():
+            problem.add_fluent(fluent)
+            logging.debug(f"Added fluent to problem: {fluent}")
+        for action in actions:
+            problem.add_action(action)
+            logging.debug(f"Added action to problem: {action}")
+        logging.info(f"Problem '{problem.name}' reconstruction complete.")
+        # TODO: initial state and goals
+        return problem
+
+    # --- Stubs for recursive parsing ---
+    def parse_ontology_formula(self, root_node, fluents, params):
+        logging.debug(f"Parsing ontology formula node: {root_node}")
+        # Implement formula tree reconstruction here
+        pass
+
+    def parse_ontology_effect(self, root_node, fluents, params):
+        logging.debug(f"Parsing ontology effect node: {root_node}")
+        # Implement effect tree reconstruction here
+        pass
+
+
     # ====================
     # Utility Functions
     # --------------------
