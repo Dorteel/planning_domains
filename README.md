@@ -22,7 +22,7 @@ aiming for full support for the [unified-planning](https://unified-planning.gith
   If you are using any ontology submodules or external dependencies, be sure to clone the repository with `--recursive`:
 
   ```bash
-  git clone --recursive https://github.com/yourusername/PlanOnto4UniPlan.git
+  git clone --recursive https://github.com/Dorteel/PlanOnto4UniPlan.git
     ```
 
 * **Work in Progress:**
@@ -45,7 +45,7 @@ aiming for full support for the [unified-planning](https://unified-planning.gith
 Clone this repo and install dependencies (ideally in a virtual environment):
 
 ```bash
-git clone --recursive https://github.com/yourusername/PlanOnto4UniPlan.git
+git clone --recursive https://github.com/Dorteel/PlanOnto4UniPlan.git
 cd PlanOnto4UniPlan
 pip install -r requirements.txt
 ```
@@ -94,7 +94,7 @@ problem = converter.add_pddl2onto(domain_filename=input_domain, save_path=output
 
 ## License
 
-[MIT License](LICENSE) (add your license here)
+[MIT License](LICENSE)
 
 ---
 
